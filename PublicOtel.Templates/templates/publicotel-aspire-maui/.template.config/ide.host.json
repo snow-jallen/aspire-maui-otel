@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "icon": "ide/PublicOtel.ico",
+  "displayOverviewPage": "0",
+  "unsupportedHosts": [
+    {
+      "id": "vs",
+      "version": "(,17.9)"
+    }
+  ],
+  "symbolInfo": [
+    {
+      "id": "applicationIdPrefix",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "publicOtelTemplates"
+    }
+  ]
+}

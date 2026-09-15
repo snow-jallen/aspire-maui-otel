@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "PublicOtel",
+  "generatorVersions": "1.0.0.0",
+  "classifications": [ "Common", "Aspire", "Cloud", "MAUI", "Mobile", "Web API", "Service", "Test", "xUnit" ],
+  "identity": "PublicOtel.Aspire.Maui.CSharp.1.0",
+  "groupIdentity": "PublicOtel.Aspire.Maui",
+  "name": "Aspire App with .NET MAUI and OpenTelemetry",
+  "description": "An Aspire solution with an API service, a Blazor web frontend, a .NET MAUI client wired for OpenTelemetry, shared service defaults, and an integration test project.",
+  "shortName": "publicotel-maui",
+  "defaultName": "AspireMauiApp",
+  "sourceName": "PublicOtel",
+  "preferNameDirectory": true,
+  "precedence": "1000",
+  "tags": {
+    "language": "C#",
+    "type": "solution",
+    "editorTreatAs": "solution"
+  },
+  "guids": [
+    "5D2802D2-A81D-4AF5-849F-FBC765773455",
+    "81B4938F-5C78-4FAD-9811-5225C9A25900",
+    "1FC81A35-D86B-4D82-8A0D-7C3C74074F86",
+    "74644FA3-1673-4C7B-BAE0-4CDD45475BE2",
+    "F5FA1AFF-8CA6-4A62-A4BC-EB500249F219",
+    "1ECE1BEF-B574-49F2-9446-A8F338D9F98E",
+    "97E4C1BC-85EE-435E-BDEF-7964F8F29002",
+    "C2A5A369-538C-42B5-BB9C-E2B7353D4A2B",
+    "C3C38BBB-942F-4A6B-AD5B-8BA0F78A73FA",
+    "6E294BF3-990F-452A-8A37-0DC968E3DD8E",
+    "a38ba06c-a565-43aa-8d88-d414751152dc"
+  ],
+  "sources": [
+    {
+      "source": "./",
+      "target": "./",
+      "exclude": [
+        "**/.template.config/**",
+        "**/[Bb]in/**",
+        "**/[Oo]bj/**",
+        "**/.vs/**",
+        "**/.aspire/**",
+        "**/*.user",
+        "**/*.lock.json",
+        "**/*.feature.cs"
+      ],
+      "modifiers": [
+        {
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
+          "exclude": [ "*.sln" ]
+        }
+      ]
+    }
+  ],
+  "forms": {
+    "stripNonAlphanumeric": {
+      "identifier": "replace",
+      "pattern": "[^a-zA-Z0-9]",
+      "replacement": ""
+    },
+    "androidAppIdSegment": {
+      "identifier": "chain",
+      "steps": [ "lowerCaseInvariant", "stripNonAlphanumeric" ]
+    }
+  },
+  "symbols": {
+    "hostIdentifier": { "type": "bind", "binding": "HostIdentifier" },
+
+    "androidAppIdName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "androidAppIdSegment",
+      "replaces": "APPIDNAME",
+      "description": "Project name lower-cased with separators removed, for the Android ApplicationId. Dots must not survive here: each dot starts a new Java package segment, and a segment that happens to be a Java keyword makes the generated R.java fail to compile. 'Final.Check' would otherwise yield package com.companyname.final.check.mobile, and 'final' is reserved."
+    },
+
+    "applicationIdPrefix": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "com.companyname",
+      "replaces": "com.companyname",
+      "description": "Reverse-DNS prefix for the MAUI ApplicationId, for example com.contoso."
+    },
+    "lowerCaseName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerCaseInvariant",
+      "replaces": "publicotel",
+      "description": "Lower-cased project name, used for the MAUI ApplicationId, the OpenTelemetry meter and instrument names, and the Aspire dashboard localhost TLD."
+    },
+
+
+    "tunnelSuffix": {
+      "type": "generated",
+      "generator": "random",
+      "parameters": { "low": 100000, "high": 999999 },
+      "replaces": "TUNNELSUFFIX",
+      "description": "Random suffix baked into the dev tunnel ID at generation time, so each generated app owns a distinct tunnel that survives moving or renaming the folder."
+    },
+
+    "GeneratedClassNamePrefix": {
+      "type": "generated",
+      "generator": "regex",
+      "datatype": "string",
+      "replaces": "GeneratedClassNamePrefix",
+      "parameters": {
+        "source": "name",
+        "steps": [
+          { "regex": "(((?<=\\.)|^)(?=\\d)|\\W)", "replacement": "_" }
+        ]
+      },
+      "description": "The project name sanitised into a C# identifier. Matches the type names the Aspire source generator emits under the Projects namespace, where dots become underscores."
+    },
+
+    "appHostHttpPort": { "type": "parameter", "datatype": "integer", "description": "Port for the AppHost HTTP endpoint in launchSettings.json." },
+    "appHostHttpPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 15000, "high": 15300 } },
+    "appHostHttpPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostHttpPort", "fallbackVariableName": "appHostHttpPortGenerated" }, "replaces": "15000" },
+
+    "appHostHttpsPort": { "type": "parameter", "datatype": "integer", "description": "Port for the AppHost HTTPS endpoint in launchSettings.json." },
+    "appHostHttpsPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 17000, "high": 17300 } },
+    "appHostHttpsPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostHttpsPort", "fallbackVariableName": "appHostHttpsPortGenerated" }, "replaces": "17000" },
+
+    "appHostOtlpHttpPort": { "type": "parameter", "datatype": "integer", "description": "Port for the OTLP HTTP endpoint in launchSettings.json." },
+    "appHostOtlpHttpPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 19000, "high": 19300 } },
+    "appHostOtlpHttpPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostOtlpHttpPort", "fallbackVariableName": "appHostOtlpHttpPortGenerated" }, "replaces": "19000" },
+
+    "appHostOtlpHttpsPort": { "type": "parameter", "datatype": "integer", "description": "Port for the OTLP HTTPS endpoint in launchSettings.json." },
+    "appHostOtlpHttpsPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 21000, "high": 21300 } },
+    "appHostOtlpHttpsPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostOtlpHttpsPort", "fallbackVariableName": "appHostOtlpHttpsPortGenerated" }, "replaces": "21000" },
+
+    "appHostResourceHttpPort": { "type": "parameter", "datatype": "integer", "description": "Port for the resource service HTTP endpoint in launchSettings.json." },
+    "appHostResourceHttpPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 20000, "high": 20300 } },
+    "appHostResourceHttpPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostResourceHttpPort", "fallbackVariableName": "appHostResourceHttpPortGenerated" }, "replaces": "20000" },
+
+    "appHostResourceHttpsPort": { "type": "parameter", "datatype": "integer", "description": "Port for the resource service HTTPS endpoint in launchSettings.json." },
+    "appHostResourceHttpsPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 22000, "high": 22300 } },
+    "appHostResourceHttpsPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "appHostResourceHttpsPort", "fallbackVariableName": "appHostResourceHttpsPortGenerated" }, "replaces": "22000" },
+
+    "webHttpPort": { "type": "parameter", "datatype": "integer", "description": "Port for the HTTP endpoint of the Web project." },
+    "webHttpPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 5000, "high": 5300 } },
+    "webHttpPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "webHttpPort", "fallbackVariableName": "webHttpPortGenerated" }, "replaces": "5000" },
+
+    "webHttpsPort": { "type": "parameter", "datatype": "integer", "description": "Port for the HTTPS endpoint of the Web project." },
+    "webHttpsPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 7000, "high": 7300 } },
+    "webHttpsPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "webHttpsPort", "fallbackVariableName": "webHttpsPortGenerated" }, "replaces": "7000" },
+
+    "apiServiceHttpPort": { "type": "parameter", "datatype": "integer", "description": "Port for the HTTP endpoint of the ApiService project." },
+    "apiServiceHttpPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 5301, "high": 5600 } },
+    "apiServiceHttpPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "apiServiceHttpPort", "fallbackVariableName": "apiServiceHttpPortGenerated" }, "replaces": "5301" },
+
+    "apiServiceHttpsPort": { "type": "parameter", "datatype": "integer", "description": "Port for the HTTPS endpoint of the ApiService project." },
+    "apiServiceHttpsPortGenerated": { "type": "generated", "generator": "port", "parameters": { "low": 7301, "high": 7600 } },
+    "apiServiceHttpsPortReplacer": { "type": "generated", "generator": "coalesce", "parameters": { "sourceVariableName": "apiServiceHttpsPort", "fallbackVariableName": "apiServiceHttpsPortGenerated" }, "replaces": "7301" }
+  }
+}

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:cl="clr-namespace:PublicOtel.ClientLogic;assembly=PublicOtel.ClientLogic"
+             x:Class="PublicOtel.Mobile.MainPage"
+             x:DataType="cl:WeatherViewModel"
+             Title="PublicOtel">
+
+    <Grid Padding="24"
+          RowSpacing="16"
+          RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- "PublicOtel" is the template's sourceName, so this shows the name the app was
+             generated with, e.g. Public3 or Demo5. -->
+        <Label Grid.Row="0"
+               Text="PublicOtel"
+               FontSize="28"
+               FontAttributes="Bold"
+               HorizontalOptions="Center"
+               SemanticProperties.HeadingLevel="Level1" />
+
+        <Button Grid.Row="1"
+                Text="Get Weather"
+                FontSize="18"
+                HeightRequest="56"
+                HorizontalOptions="Fill"
+                SemanticProperties.Hint="Calls the weather API and shows the forecast"
+                Command="{Binding LoadWeatherCommand}" />
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="10">
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HeightRequest="18"
+                               WidthRequest="18"
+                               VerticalOptions="Center" />
+            <Label Text="{Binding Status}"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Forecasts}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="cl:WeatherForecast">
+                    <Border Margin="0,4"
+                            Padding="14"
+                            StrokeShape="RoundRectangle 10"
+                            StrokeThickness="1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Date}"
+                                       FontAttributes="Bold"
+                                       FontSize="16" />
+                                <Label Text="{Binding Summary}"
+                                       FontSize="14"
+                                       Opacity="0.75" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding TemperatureC, StringFormat='{0}°C'}"
+                                   FontSize="22"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>
