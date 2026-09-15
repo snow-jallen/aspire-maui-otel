@@ -1,0 +1,103 @@
+name: pack
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write          # needed to create releases
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Only the cross-platform projects are exercised here.
+      #
+      # The solution as a whole cannot build on this runner: PublicOtel.Mobile targets
+      # net10.0-ios, -maccatalyst and -windows, none of which build on Linux. And
+      # PublicOtel.Tests spins up the real AppHost, which creates dev tunnels and needs an
+      # interactive Microsoft login - hopeless in CI.
+      #
+      # ClientLogic and ClientTests are plain net10.0, which is exactly why the client logic
+      # was split out of the MAUI project in the first place.
+      - name: Test ClientLogic
+        run: dotnet test PublicOtel.ClientTests/PublicOtel.ClientTests.csproj --configuration Release
+
+      # The template pack has no ProjectReferences and IncludeBuildOutput=false, so packing
+      # is pure file packaging - no MAUI workload required.
+      - name: Pack template
+        id: pack
+        run: |
+          VERSION=$(dotnet msbuild PublicOtel.Templates/PublicOtel.Templates.csproj \
+            -getProperty:Version | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Packing version $VERSION"
+          dotnet pack PublicOtel.Templates/PublicOtel.Templates.csproj \
+            --configuration Release --output ./artifacts
+
+      # Catches the failure mode that actually bites: a template that packs cleanly but
+      # generates an app that does not compile, because a token, GUID or project reference
+      # did not survive substitution.
+      - name: Smoke test the generated template
+        run: |
+          set -euo pipefail
+          dotnet new install ./artifacts/PublicOtel.Templates.${{ steps.pack.outputs.version }}.nupkg
+          mkdir -p /tmp/smoke && cd /tmp/smoke
+          dotnet new publicotel-maui -n Ci.Smoke
+
+          echo "--- no template tokens should survive ---"
+          if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|GeneratedClassNamePrefix" Ci.Smoke \
+               --include=*.cs --include=*.csproj --include=*.xaml --include=*.sln \
+               --include=*.json --include=*.ps1; then
+            echo "::error::Unsubstituted template tokens found in the generated app"
+            exit 1
+          fi
+
+          echo "--- the generated cross-platform projects must build and pass ---"
+          dotnet test Ci.Smoke/Ci.Smoke.ClientTests/Ci.Smoke.ClientTests.csproj --configuration Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PublicOtel.Templates.${{ steps.pack.outputs.version }}
+          path: ./artifacts/*.nupkg
+          if-no-files-found: error
+
+      # Publishes a release the first time a given version is seen on main. Bump <Version>
+      # in PublicOtel.Templates.csproj to cut a new one; ordinary pushes just rebuild and
+      # skip this step rather than failing on a duplicate tag.
+      - name: Publish release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.pack.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists - nothing to publish."
+            echo "Bump <Version> in PublicOtel.Templates.csproj to cut a new release."
+            exit 0
+          fi
+          {
+            printf '`dotnet new` template pack for an Aspire solution with a .NET MAUI client wired for OpenTelemetry.\n\n'
+            printf '**Install**\n\n'
+            printf '```\n'
+            printf 'dotnet new uninstall PublicOtel.Templates\n'
+            printf 'dotnet new install PublicOtel.Templates.%s.nupkg\n' "$VERSION"
+            printf 'dotnet new publicotel-maui -n Your.AppName\n'
+            printf '```\n\n'
+            printf 'Uninstall first: installing over an existing copy leaves both versions registered and warns about a duplicate template identity.\n'
+          } > release-notes.md
+
+          gh release create "v$VERSION" ./artifacts/*.nupkg \
+            --title "v$VERSION" \
+            --notes-file release-notes.md
