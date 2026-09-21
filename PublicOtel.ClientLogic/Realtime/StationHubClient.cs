@@ -30,20 +30,37 @@ public sealed class StationHubClient(Func<Uri> hubUriFactory) : IStationHubClien
 
 	private HubConnection? _connection;
 
+	private readonly SemaphoreSlim _gate = new(1, 1);
+
 	public event Action<StationReading>? ReadingReported;
 
 	public event Action? Reconnected;
 
+	/// <summary>
+	/// Connects, or does nothing if already connected. Safe to call more than once.
+	/// </summary>
 	public async Task StartAsync(CancellationToken cancellationToken = default)
 	{
-		// Built here rather than in the constructor. Resolving the API's address throws when
-		// the app was not launched by the Aspire AppHost, and this type is resolved eagerly at
-		// startup, so a constructor that can throw would take the whole app down - including
-		// the weather page, which needs no SignalR at all. Deferring it puts the failure inside
-		// StartAsync, where the view model already catches it and shows it.
-		_connection ??= Build(hubUriFactory());
+		// The gate does two jobs: it makes the lazy build atomic, and it stops two callers
+		// racing into HubConnection.StartAsync at once.
+		await _gate.WaitAsync(cancellationToken);
 
-		await _connection.StartAsync(cancellationToken);
+		try
+		{
+			_connection ??= Build(hubUriFactory());
+
+			// HubConnection.StartAsync throws unless the connection is Disconnected, and the
+			// Connect button is tappable twice. An already-live connection is what the caller
+			// wanted, so report success rather than a confusing failure.
+			if (_connection.State == HubConnectionState.Disconnected)
+			{
+				await _connection.StartAsync(cancellationToken);
+			}
+		}
+		finally
+		{
+			_gate.Release();
+		}
 	}
 
 	private HubConnection Build(Uri hubUri)
@@ -64,5 +81,13 @@ public sealed class StationHubClient(Func<Uri> hubUriFactory) : IStationHubClien
 		return connection;
 	}
 
-	public ValueTask DisposeAsync() => _connection?.DisposeAsync() ?? ValueTask.CompletedTask;
+	public async ValueTask DisposeAsync()
+	{
+		if (_connection is not null)
+		{
+			await _connection.DisposeAsync();
+		}
+
+		_gate.Dispose();
+	}
 }
