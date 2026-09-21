@@ -34,9 +34,10 @@ Then in the dashboard, start the platform you want.
 the trace appears under Traces.
 
 **Android**: on the `mobile-android-emulator` resource, use its **▶ Run on Android**
-command — *not* Start. Start always fails with NETSDK1085 because of a bug in
-`Aspire.Hosting.Maui` 13.5.3-preview.1 (see below). The command does the whole thing in one
-step and is the only action you need.
+command — *not* Start. Start fails with NETSDK1085 because of a bug in `Aspire.Hosting.Maui`
+(see below). The command does the whole thing in one step and is the only action you need.
+Last confirmed against 13.5.3-preview.1; this template now ships 13.5.4-preview.1 and the bug
+has not been re-tested against it, so try Start once before reaching for the workaround.
 
 Equivalently, from a terminal at the repo root:
 
