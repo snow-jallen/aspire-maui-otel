@@ -91,7 +91,8 @@ public class StationSupervisorTests : TestKit
 	{
 		var supervisor = Supervisor();
 
-		// Uri.EscapeDataString would have made this "north%20side" - a name Akka rejects.
+		// Escapes to "north%20side". Akka accepts percent-encoded path elements, and
+		// EscapeDataString is injective, so distinct ids never collide onto one actor.
 		supervisor.Tell(new ReportReading("north side", 21, default));
 		supervisor.Tell(new GetLatestReading("north side", default));
 
@@ -99,7 +100,7 @@ public class StationSupervisorTests : TestKit
 	}
 
 	[Fact]
-	public void Two_station_ids_that_flatten_to_the_same_safe_name_stay_separate()
+	public void Two_similar_station_ids_get_separate_actors()
 	{
 		var supervisor = Supervisor();
 

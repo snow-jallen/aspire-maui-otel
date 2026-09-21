@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Akka.Actor;
 using Microsoft.AspNetCore.SignalR;
 using PublicOtel.ApiService.Hubs;
@@ -59,33 +57,11 @@ public sealed class StationSupervisor : ReceiveActor
     {
         // Actor names have to be URL-safe and stable, and a station id arrives from a route
         // parameter, so it is escaped rather than trusted.
-        var name = ActorNameFor(station);
+        var name = $"station-{Uri.EscapeDataString(station)}";
         var child = Context.Child(name);
 
         return child.Equals(ActorRefs.Nobody)
             ? Context.ActorOf(WeatherStationActor.CreateProps(station, _hub), name)
             : child;
-    }
-
-    /// <summary>
-    /// A child actor name that Akka will always accept, for a station id that arrived from a
-    /// route parameter and could contain anything.
-    /// </summary>
-    /// <remarks>
-    /// Not <c>Uri.EscapeDataString</c>: that emits <c>%XX</c>, and <c>%</c> is not a legal
-    /// actor-name character, so escaping a station id that way produces a name Akka itself
-    /// rejects. The throw would land in this supervisor rather than in a child, where
-    /// supervision could do nothing about it.
-    /// </remarks>
-    private static string ActorNameFor(string station)
-    {
-        var safe = new string(station.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
-
-        // Two different ids can flatten to the same safe string ("north side" and
-        // "north-side"), and sharing one actor would silently merge two stations' readings.
-        // The hash of the original keeps them apart, and is stable for a given id.
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(station)))[..8];
-
-        return $"station-{safe}-{hash}";
     }
 }
