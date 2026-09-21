@@ -13,4 +13,9 @@
         Title="Weather"
         Route="MainPage" />
 
+    <ShellContent
+        x:Name="StationsContent"
+        Title="Stations"
+        Route="StationsPage" />
+
 </Shell>
