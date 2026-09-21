@@ -10,6 +10,10 @@
   ],
   "symbolInfo": [
     {
+      "id": "IncludeAkka",
+      "isVisible": true
+    },
+    {
       "id": "applicationIdPrefix",
       "isVisible": true,
       "persistenceScope": "shared",

@@ -48,6 +48,21 @@
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [ "*.sln" ]
+        },
+        {
+          "condition": "(!IncludeAkka)",
+          "exclude": [
+            "PublicOtel.ApiService/Actors/**",
+            "PublicOtel.ApiService/Hubs/**",
+            "PublicOtel.ApiService/Telemetry/**",
+            "PublicOtel.ClientLogic/Realtime/**",
+            "PublicOtel.ClientTests/Actors/**",
+            "PublicOtel.ClientTests/Realtime/**",
+            "PublicOtel.ClientTests/Features/Stations.feature",
+            "PublicOtel.ClientTests/Steps/StationSteps.cs",
+            "PublicOtel.Mobile/StationsPage.xaml",
+            "PublicOtel.Mobile/StationsPage.xaml.cs"
+          ]
         }
       ]
     }
@@ -65,6 +80,14 @@
   },
   "symbols": {
     "hostIdentifier": { "type": "bind", "binding": "HostIdentifier" },
+
+    "IncludeAkka": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "displayName": "Include Akka.NET actors and SignalR",
+      "description": "Adds an Akka.NET actor system to the API service via Akka.Hosting, a message envelope carrying ActivityContext so traces survive the actor mailbox, and a SignalR hub that pushes actor state changes live to the MAUI client."
+    },
 
     "androidAppIdName": {
       "type": "derived",
