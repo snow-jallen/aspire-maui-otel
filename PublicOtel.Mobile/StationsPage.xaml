@@ -8,7 +8,7 @@
 
     <Grid Padding="24"
           RowSpacing="12"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*">
 
         <Label Grid.Row="0"
                Text="Live station readings"
@@ -41,7 +41,21 @@
         <Label Grid.Row="4"
                Text="{Binding Status}" />
 
-        <CollectionView Grid.Row="5"
+        <Label Grid.Row="5"
+               FontSize="20"
+               SemanticProperties.Hint="The station's current reading">
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span Text="Latest: " />
+                    <Span Text="{Binding LatestReading.Station}" FontAttributes="Bold" />
+                    <Span Text=" " />
+                    <Span Text="{Binding LatestReading.TemperatureC}" FontAttributes="Bold" />
+                    <Span Text="°C" />
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+
+        <CollectionView Grid.Row="6"
                         ItemsSource="{Binding Updates}">
             <CollectionView.Header>
                 <Label Text="Pushed from the server"
