@@ -13,7 +13,11 @@ namespace PublicOtel.ClientTests.Actors;
 /// messages, Ask answers before any state exists, and the span it starts is parented to the
 /// context that arrived in the message rather than floating free.
 /// </summary>
-public class WeatherStationActorTests : TestKit
+// Fully qualified on purpose. Written as a bare `TestKit`, this breaks with CS0118 in any
+// app whose root namespace starts with "Akka." - C# then resolves the name to the sibling
+// Akka.TestKit namespace instead of this class. That is a likely project name for a
+// template whose headline feature is Akka.NET.
+public class WeatherStationActorTests : Akka.TestKit.Xunit.TestKit
 {
 	private readonly IHubContext<WeatherHub, IWeatherClient> _hub =
 		Substitute.For<IHubContext<WeatherHub, IWeatherClient>>();
