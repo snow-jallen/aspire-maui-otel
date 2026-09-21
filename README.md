@@ -39,6 +39,14 @@ For **Android**, use the `mobile-android-emulator` resource's **▶ Run on Andro
 rather than Start — see [the template README](PublicOtel.Templates/README.md) for why, and
 for the dev tunnel caveats.
 
+## Akka.NET and SignalR
+
+`dotnet new publicotel-maui -n Your.App --include-akka` adds an Akka.NET actor system behind
+the API, a message envelope that carries `ActivityContext` so a trace survives the actor
+mailbox, and a SignalR hub that pushes state changes to a live **Stations** page in the MAUI
+app. See [the template README](PublicOtel.Templates/README.md) for what it generates and how
+to run the two-device demo.
+
 ## Two things worth knowing
 
 **MAUI configuration has no environment-variable source.** `MauiApp.CreateBuilder()` hands

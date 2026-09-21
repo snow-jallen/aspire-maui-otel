@@ -96,7 +96,7 @@ in `AppHost.cs` once the integration is fixed upstream.
 
 ```bash
 dotnet pack PublicOtel.Templates/PublicOtel.Templates.csproj -c Release
-dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.8.0.nupkg
+dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.9.0.nupkg
 ```
 
 Once installed the template appears in `dotnet new list` and in the Visual Studio 2022
@@ -112,10 +112,55 @@ dotnet new publicotel-maui -n Contoso.Telemetry --application-id-prefix com.cont
 |---|---|---|
 | `-n, --name` | `AspireMauiApp` | Renames every project, namespace, and the solution. Also drives the lower-cased MAUI `ApplicationId`, the OpenTelemetry meter and instrument names, and the dashboard's `*.dev.localhost` host. |
 | `--application-id-prefix` | `com.companyname` | Reverse-DNS prefix for the MAUI `ApplicationId`. |
+| `--include-akka` | `false` | Adds an Akka.NET actor system to the API, a message envelope that carries `ActivityContext` across the actor mailbox, and a SignalR hub pushing live updates to a second page in the MAUI app. |
 
 Project GUIDs, the solution GUID, the AppHost `UserSecretsId`, and all ten launch-profile
 ports are regenerated per instantiation, so two apps from this template can be open and
 running side by side.
+
+## `--include-akka`
+
+```bash
+dotnet new publicotel-maui -n Contoso.Telemetry --include-akka
+```
+
+Adds three things that go together.
+
+**An actor per weather station.** `StationSupervisor` creates one `WeatherStationActor` per
+station id and supervises it. Each actor owns its station's latest reading in a private field
+with no lock, because a mailbox delivers one message at a time. A reading outside
+-90..60°C throws `InvalidReadingException`, and the supervisor's `OneForOneStrategy` restarts
+that child — which discards its state, the cost restart actually has.
+
+**A trace that survives the mailbox.** Auto-instrumentation propagates trace context across an
+HTTP hop through the `traceparent` header. Nothing propagates it across a mailbox: `Tell`
+returns immediately and the actor runs later, on another thread, with no ambient `Activity`.
+So every message record carries an `ActivityContext`, and the actor starts its span with
+`parentContext:` set from it. Delete that one argument in `WeatherStationActor` and the actor
+span becomes a parentless root floating beside the API span — the standard demonstration of
+why this matters, and it takes five seconds to stage.
+
+**SignalR.** `WeatherHub` at `/hubs/weather` broadcasts on every state change; the MAUI app's
+**Stations** page subscribes and updates live. Alongside the station and temperature fields,
+the **Connect** and **Report Reading** buttons, and the list of pushed updates, the page shows
+a live `Latest: <station> <temp>°C` label bound to the most recent reading. Reports go over
+HTTP rather than a hub method, deliberately: an HTTP POST carries `traceparent` and starts
+inside a trace, a hub invocation does not.
+
+| Endpoint | Actor call | Response |
+|---|---|---|
+| `POST /stations/{station}/readings` | `Tell` | `202 Accepted` — the actor may not have processed it yet |
+| `GET /stations/{station}` | `Ask` (3s timeout) | `200` with the reading, or `404` |
+
+### The two-device demo
+
+Start the app, open the **Stations** page on two devices (two emulators, or Windows plus an
+emulator), press **Connect** on both, then **Report Reading** on one. The other updates with
+no refresh.
+
+Android reaches the API over the existing `mobile-api` dev tunnel, and SignalR therefore rides
+that tunnel too. Dev tunnels do carry WebSockets, but it is a new failure surface: if live
+updates work on Windows and not on Android, check the tunnel before suspecting the hub.
 
 ## Uninstall
 
@@ -139,6 +184,17 @@ code:
 - `tunnelId: "mobile-api-TUNNELSUFFIX"` in `AppHost.cs` — the working copy holds a real
   number; the template holds the token, which the `tunnelSuffix` symbol replaces with a
   random six-digit value per generated app.
+- The `//#if (IncludeAkka)` and `<!--#if (IncludeAkka) -->` markers — 14 marker pairs across
+  seven files: `Program.cs`, `MauiProgram.cs`, `AppShell.xaml`, `AppShell.xaml.cs`, and the
+  `PublicOtel.ApiService`, `PublicOtel.ClientLogic`, and `PublicOtel.ClientTests` `.csproj`
+  files. The working copy has that code unconditionally; only the template copy carries
+  markers. Whole files under `Actors/`, `Hubs/`, `Telemetry/`, and `Realtime/` need no
+  markers — `template.json` excludes them by path when the flag is off. One asymmetry worth
+  preserving in `PublicOtel.ClientTests.csproj`: the `xunit.v3` 3.2.2 pin is unconditional
+  (both variants need it, per the comment beside the `PackageReference`), while only
+  `Akka.TestKit.Xunit` and the `ProjectReference` to `PublicOtel.ApiService` are wrapped in
+  `IncludeAkka` markers. It is easy to "tidy" that pin into the conditional block by mistake —
+  don't.
 
 ## Dev tunnel IDs
 
@@ -172,3 +228,13 @@ Joining the name into one segment avoids this for multi-word names — `Final.Ch
 `com.companyname.finalcheck.mobile`. A single-word project named exactly after a Java
 keyword (`Final`, `New`, `Class`, `Public`, `Static`) would still collide; set
 `--application-id-prefix` or rename the project if you hit it.
+
+## Akka test project names and `TestKit`
+
+`WeatherStationActorTests` and `StationSupervisorTests` (generated with `--include-akka`)
+deliberately write their base class as the fully-qualified `Akka.TestKit.Xunit.TestKit`
+rather than a bare `TestKit`. A bare `TestKit` fails to compile with `CS0118` in any generated
+app whose name starts with `Akka.` — C# resolves the bare name to the sibling `Akka.TestKit`
+namespace instead of the class. CI guards against a regression here by generating its
+flag-on smoke app as `Akka.CiSmoke`, which would trip exactly this collision if the base
+class were ever changed back to a bare `TestKit`.
