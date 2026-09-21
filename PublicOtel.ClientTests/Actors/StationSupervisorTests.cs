@@ -85,4 +85,31 @@ public class StationSupervisorTests : TestKit
 
 		ExpectMsg<StationReading>().TemperatureC.ShouldBe(18);
 	}
+
+	[Fact]
+	public void A_station_id_that_is_not_a_bare_identifier_still_gets_an_actor()
+	{
+		var supervisor = Supervisor();
+
+		// Uri.EscapeDataString would have made this "north%20side" - a name Akka rejects.
+		supervisor.Tell(new ReportReading("north side", 21, default));
+		supervisor.Tell(new GetLatestReading("north side", default));
+
+		ExpectMsg<StationReading>().TemperatureC.ShouldBe(21);
+	}
+
+	[Fact]
+	public void Two_station_ids_that_flatten_to_the_same_safe_name_stay_separate()
+	{
+		var supervisor = Supervisor();
+
+		supervisor.Tell(new ReportReading("north side", 21, default));
+		supervisor.Tell(new ReportReading("north-side", 30, default));
+
+		supervisor.Tell(new GetLatestReading("north side", default));
+		ExpectMsg<StationReading>().TemperatureC.ShouldBe(21);
+
+		supervisor.Tell(new GetLatestReading("north-side", default));
+		ExpectMsg<StationReading>().TemperatureC.ShouldBe(30);
+	}
 }
