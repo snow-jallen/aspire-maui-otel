@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- xUnit1051 wants TestContext.Current.CancellationToken threaded through every awaited
+         call. Akka TestKit's ExpectMsg/EventFilter own their own timeouts, and the substituted
+         async calls in these tests complete synchronously, so the token would be ceremony. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

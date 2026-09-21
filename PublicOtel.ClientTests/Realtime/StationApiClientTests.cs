@@ -41,7 +41,7 @@ public class StationApiClientTests
 
 		handler.LastRequest!.Method.ShouldBe(HttpMethod.Post);
 		handler.LastRequest.RequestUri!.AbsolutePath.ShouldBe("/stations/north/readings");
-		handler.LastBody.ShouldContain("21");
+		handler.LastBody!.ShouldContain("21");
 	}
 
 	[Fact]
