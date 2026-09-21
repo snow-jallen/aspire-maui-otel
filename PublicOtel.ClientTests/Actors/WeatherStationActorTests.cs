@@ -120,8 +120,10 @@ public class WeatherStationActorTests : Akka.TestKit.Xunit.TestKit
 		actor.Tell(new GetLatestReading("north", callerContext));
 		ExpectMsg<StationReading>();
 
-		started.ShouldContain(a => a.OperationName == "WeatherStationActor.ReportReading");
-		var actorSpan = started.Single(a => a.OperationName == "WeatherStationActor.ReportReading");
+		started.ShouldContain(a => a.OperationName == "WeatherStationActor.ReportReading"
+		                        && a.TraceId == callerContext.TraceId);
+		var actorSpan = started.Single(a => a.OperationName == "WeatherStationActor.ReportReading"
+		                                 && a.TraceId == callerContext.TraceId);
 		actorSpan.ParentSpanId.ShouldBe(callerContext.SpanId);
 		actorSpan.TraceId.ShouldBe(callerContext.TraceId);
 	}
