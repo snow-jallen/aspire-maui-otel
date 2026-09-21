@@ -102,8 +102,10 @@ public class StationsViewModelTests
 		_api.GetLatestReadingAsync("north", Arg.Any<CancellationToken>()).Returns(Reading(temperatureC: 40));
 		_hub.Reconnected += Raise.Event<Action>();
 
-		// The handler is async void by necessity - an event cannot be awaited - so give the
-		// continuation a turn before asserting.
+		// Belt and braces rather than load-bearing: the substituted GetLatestReadingAsync
+		// returns an already-completed task, so the handler - async void by necessity, since
+		// an event cannot be awaited - runs to completion synchronously inside Raise.Event.
+		// The delay is kept only to cover an implementation that genuinely yields.
 		await Task.Delay(50);
 
 		viewModel.LatestReading!.TemperatureC.ShouldBe(40);

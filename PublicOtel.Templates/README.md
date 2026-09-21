@@ -197,9 +197,16 @@ code:
   seven files: `Program.cs`, `MauiProgram.cs`, `AppShell.xaml`, `AppShell.xaml.cs`, and the
   `PublicOtel.ApiService`, `PublicOtel.ClientLogic`, and `PublicOtel.ClientTests` `.csproj`
   files. The working copy has that code unconditionally; only the template copy carries
-  markers. Whole files under `Actors/`, `Hubs/`, `Telemetry/`, and `Realtime/` need no
-  markers — `template.json` excludes them by path when the flag is off. One asymmetry worth
-  preserving in `PublicOtel.ClientTests.csproj`: the `xunit.v3` 3.2.2 pin is unconditional
+  markers. Whole files need no markers — the `(!IncludeAkka)` modifier in `template.json`
+  excludes all ten paths by name when the flag is off: the directories
+  `PublicOtel.ApiService/Actors/`, `PublicOtel.ApiService/Hubs/`,
+  `PublicOtel.ApiService/Telemetry/`, `PublicOtel.ClientLogic/Realtime/`,
+  `PublicOtel.ClientTests/Actors/` and `PublicOtel.ClientTests/Realtime/`, and the four
+  individual files `PublicOtel.ClientTests/Features/Stations.feature`,
+  `PublicOtel.ClientTests/Steps/StationSteps.cs`, `PublicOtel.Mobile/StationsPage.xaml` and
+  `PublicOtel.Mobile/StationsPage.xaml.cs`. Add a new unconditional Akka-only file and it
+  needs a new entry there. One asymmetry worth preserving in
+  `PublicOtel.ClientTests.csproj`: the `xunit.v3` 3.2.2 pin is unconditional
   (both variants need it, per the comment beside the `PackageReference`), while only
   `Akka.TestKit.Xunit` and the `ProjectReference` to `PublicOtel.ApiService` are wrapped in
   `IncludeAkka` markers. It is easy to "tidy" that pin into the conditional block by mistake —

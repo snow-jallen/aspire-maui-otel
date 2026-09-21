@@ -62,7 +62,11 @@ jobs:
           dotnet new publicotel-maui -n Akka.CiSmoke --include-akka
 
           echo "--- no template tokens or conditional markers should survive ---"
-          if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|GeneratedClassNamePrefix\|IncludeAkka" \
+          # #endif is in the pattern so a stranded conditional marker fails here too, not
+          # just an unsubstituted token. That is only safe because the template engine
+          # strips the one unrelated real "#if DEBUG" block along with its #endif, so a
+          # generated app legitimately contains no #endif at all.
+          if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|ACTORSYSTEMNAME\|GeneratedClassNamePrefix\|IncludeAkka\|#endif" \
                Ci.Smoke Akka.CiSmoke \
                --include=*.cs --include=*.csproj --include=*.xaml --include=*.sln \
                --include=*.json --include=*.ps1 --include=*.feature; then
