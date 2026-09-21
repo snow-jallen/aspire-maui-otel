@@ -47,24 +47,47 @@ jobs:
 
       # Catches the failure mode that actually bites: a template that packs cleanly but
       # generates an app that does not compile, because a token, GUID or project reference
-      # did not survive substitution.
+      # did not survive substitution. Both variants are generated, because a regression in
+      # the --include-akka=false path would otherwise ship unnoticed.
       - name: Smoke test the generated template
         run: |
           set -euo pipefail
           dotnet new install ./artifacts/PublicOtel.Templates.${{ steps.pack.outputs.version }}.nupkg
           mkdir -p /tmp/smoke && cd /tmp/smoke
           dotnet new publicotel-maui -n Ci.Smoke
+          # The akka variant is deliberately named Akka.* - a generated app whose root
+          # namespace begins "Akka." once failed to compile, because a bare `TestKit` base
+          # class resolved to the sibling Akka.TestKit namespace instead of the imported
+          # type. This name keeps that regression guarded.
+          dotnet new publicotel-maui -n Akka.CiSmoke --include-akka
 
-          echo "--- no template tokens should survive ---"
-          if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|GeneratedClassNamePrefix" Ci.Smoke \
+          echo "--- no template tokens or conditional markers should survive ---"
+          if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|GeneratedClassNamePrefix\|IncludeAkka" \
+               Ci.Smoke Akka.CiSmoke \
                --include=*.cs --include=*.csproj --include=*.xaml --include=*.sln \
-               --include=*.json --include=*.ps1; then
-            echo "::error::Unsubstituted template tokens found in the generated app"
+               --include=*.json --include=*.ps1 --include=*.feature; then
+            echo "::error::Unsubstituted template tokens found in a generated app"
             exit 1
           fi
 
-          echo "--- the generated cross-platform projects must build and pass ---"
+          echo "--- the akka content must be absent without the flag ---"
+          if find Ci.Smoke -name 'StationsPage.xaml' -o -name 'Stations.feature' \
+                           -o -name 'WeatherStationActor.cs' | grep .; then
+            echo "::error::Akka content leaked into the app generated without --include-akka"
+            exit 1
+          fi
+
+          echo "--- and present with it ---"
+          test -f Akka.CiSmoke/Akka.CiSmoke.ApiService/Actors/WeatherStationActor.cs
+          test -f Akka.CiSmoke/Akka.CiSmoke.Mobile/StationsPage.xaml
+
+          echo "--- the generated cross-platform projects must build and pass, both ways ---"
           dotnet test Ci.Smoke/Ci.Smoke.ClientTests/Ci.Smoke.ClientTests.csproj --configuration Release
+          dotnet test Akka.CiSmoke/Akka.CiSmoke.ClientTests/Akka.CiSmoke.ClientTests.csproj --configuration Release
+
+          echo "--- the actor and hub code must compile on its own ---"
+          dotnet build Akka.CiSmoke/Akka.CiSmoke.ApiService/Akka.CiSmoke.ApiService.csproj \
+            --configuration Release
 
       - uses: actions/upload-artifact@v4
         with:
