@@ -89,6 +89,14 @@
       "description": "Adds an Akka.NET actor system to the API service via Akka.Hosting, a message envelope carrying ActivityContext so traces survive the actor mailbox, and a SignalR hub that pushes actor state changes live to the MAUI client."
     },
 
+    "actorSystemName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "androidAppIdSegment",
+      "replaces": "ACTORSYSTEMNAME",
+      "description": "Project name lower-cased with separators removed, for the Akka.NET ActorSystem name. Akka accepts only [a-zA-Z0-9] plus a non-leading '-', so the lowerCaseName symbol cannot be used here: a dotted project name would produce an invalid name and ActorSystem creation would throw at startup."
+    },
+
     "androidAppIdName": {
       "type": "derived",
       "valueSource": "name",

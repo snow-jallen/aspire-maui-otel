@@ -172,7 +172,7 @@ dotnet new uninstall PublicOtel.Templates
 
 The template content under `templates/publicotel-aspire-maui/` is a copy of the source
 solution. When you change the real solution and want those changes in the template, copy the
-files across and then re-apply the two placeholders that deliberately differ from working
+files across and then re-apply the placeholders that deliberately differ from working
 code:
 
 - `Projects.GeneratedClassNamePrefix_*` in `AppHost.cs` and `WebTests.cs` — the Aspire source
@@ -184,6 +184,15 @@ code:
 - `tunnelId: "mobile-api-TUNNELSUFFIX"` in `AppHost.cs` — the working copy holds a real
   number; the template holds the token, which the `tunnelSuffix` symbol replaces with a
   random six-digit value per generated app.
+- `private const string ActorSystemName = "ACTORSYSTEMNAME";` in
+  `PublicOtel.ApiService/Actors/WeatherActorExtensions.cs` — the working copy holds
+  `"publicotel"`, a valid name that keeps the real solution runnable; the template holds the
+  token, which the `actorSystemName` symbol replaces with the project name lower-cased and
+  stripped of separators. `lowerCaseName` cannot be used here: Akka accepts only
+  `[a-zA-Z0-9]` plus a non-leading `-`, so `-n Contoso.Telemetry` would produce
+  `contoso.telemetry` and the generated ApiService would throw `ArgumentException: Invalid
+  ActorSystem name` before it finished starting. This is the one file the branch added whose
+  two copies are not byte-identical.
 - The `//#if (IncludeAkka)` and `<!--#if (IncludeAkka) -->` markers — 14 marker pairs across
   seven files: `Program.cs`, `MauiProgram.cs`, `AppShell.xaml`, `AppShell.xaml.cs`, and the
   `PublicOtel.ApiService`, `PublicOtel.ClientLogic`, and `PublicOtel.ClientTests` `.csproj`

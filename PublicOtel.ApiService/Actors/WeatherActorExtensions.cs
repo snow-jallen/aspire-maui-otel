@@ -10,8 +10,10 @@ namespace PublicOtel.ApiService.Actors;
 /// </summary>
 public static class WeatherActorExtensions
 {
-    // Lower-case on purpose: in the template this literal is rewritten per generated app by
-    // the lowerCaseName symbol, so each app names its actor system after itself.
+    // Lower-case with separators removed, on purpose. In the template this literal is a token
+    // the actorSystemName symbol rewrites per generated app. It cannot be the plain
+    // lower-cased project name: Akka accepts only [a-zA-Z0-9] and a non-leading '-', so a
+    // dotted name like Contoso.Telemetry would throw at ActorSystem creation.
     private const string ActorSystemName = "publicotel";
 
     public static IHostApplicationBuilder AddWeatherActors(this IHostApplicationBuilder builder)
