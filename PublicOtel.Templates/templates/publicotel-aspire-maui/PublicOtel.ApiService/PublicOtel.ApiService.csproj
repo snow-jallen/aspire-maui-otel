@@ -14,6 +14,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <!--#if (IncludeAkka) -->
+    <PackageReference Include="Akka.Hosting" Version="1.5.71" />
+    <!--#endif -->
   </ItemGroup>
 
 </Project>

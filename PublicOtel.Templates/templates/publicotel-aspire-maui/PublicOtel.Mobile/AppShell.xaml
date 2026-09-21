@@ -13,4 +13,11 @@
         Title="Weather"
         Route="MainPage" />
 
+    <!--#if (IncludeAkka) -->
+    <ShellContent
+        x:Name="StationsContent"
+        Title="Stations"
+        Route="StationsPage" />
+    <!--#endif -->
+
 </Shell>

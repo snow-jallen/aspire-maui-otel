@@ -1,3 +1,8 @@
+//#if (IncludeAkka)
+using PublicOtel.ApiService.Actors;
+using PublicOtel.ApiService.Hubs;
+//#endif
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
@@ -8,6 +13,15 @@ builder.Services.AddProblemDetails();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+//#if (IncludeAkka)
+// SignalR is what lets the server tell the phone something happened, instead of the phone
+// having to keep asking.
+builder.Services.AddSignalR();
+
+// The actor system goes in the container alongside everything else.
+builder.AddWeatherActors();
+//#endif
 
 var app = builder.Build();
 
@@ -22,6 +36,11 @@ if (app.Environment.IsDevelopment())
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
 
 app.MapGet("/", () => "API service is running. Navigate to /weatherforecast to see sample data.");
+
+//#if (IncludeAkka)
+app.MapHub<WeatherHub>("/hubs/weather");
+app.MapWeatherStationEndpoints();
+//#endif
 
 app.MapGet("/weatherforecast", () =>
 {

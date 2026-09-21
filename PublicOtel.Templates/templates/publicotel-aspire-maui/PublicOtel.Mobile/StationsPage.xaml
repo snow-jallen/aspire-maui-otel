@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:rt="clr-namespace:PublicOtel.ClientLogic.Realtime;assembly=PublicOtel.ClientLogic"
+             x:Class="PublicOtel.Mobile.StationsPage"
+             x:DataType="rt:StationsViewModel"
+             Title="Stations">
+
+    <Grid Padding="24"
+          RowSpacing="12"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*">
+
+        <Label Grid.Row="0"
+               Text="Live station readings"
+               FontSize="24"
+               FontAttributes="Bold"
+               SemanticProperties.HeadingLevel="Level1" />
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="10">
+            <Label Text="Station" VerticalOptions="Center" />
+            <Entry Text="{Binding Station}"
+                   WidthRequest="140"
+                   SemanticProperties.Hint="The station to report for and listen to" />
+            <Label Text="°C" VerticalOptions="Center" />
+            <Entry Text="{Binding TemperatureC}"
+                   Keyboard="Numeric"
+                   WidthRequest="80"
+                   SemanticProperties.Hint="The temperature to report" />
+        </HorizontalStackLayout>
+
+        <Button Grid.Row="2"
+                Text="Connect"
+                HeightRequest="48"
+                Command="{Binding ConnectCommand}" />
+
+        <Button Grid.Row="3"
+                Text="Report Reading"
+                HeightRequest="48"
+                Command="{Binding ReportReadingCommand}" />
+
+        <Label Grid.Row="4"
+               Text="{Binding Status}" />
+
+        <Label Grid.Row="5"
+               FontSize="20"
+               SemanticProperties.Hint="The station's current reading">
+            <Label.FormattedText>
+                <FormattedString>
+                    <Span Text="Latest: " />
+                    <Span Text="{Binding LatestReading.Station}" FontAttributes="Bold" />
+                    <Span Text=" " />
+                    <Span Text="{Binding LatestReading.TemperatureC}" FontAttributes="Bold" />
+                    <Span Text="°C" />
+                </FormattedString>
+            </Label.FormattedText>
+        </Label>
+
+        <CollectionView Grid.Row="6"
+                        ItemsSource="{Binding Updates}">
+            <CollectionView.Header>
+                <Label Text="Pushed from the server"
+                       FontAttributes="Bold"
+                       Margin="0,12,0,4" />
+            </CollectionView.Header>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="rt:StationReading">
+                    <Border Margin="0,4"
+                            Padding="12"
+                            StrokeShape="RoundRectangle 10"
+                            StrokeThickness="1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Station}" FontAttributes="Bold" />
+                                <Label Text="{Binding ObservedAt, StringFormat='{0:T}'}"
+                                       FontSize="13"
+                                       Opacity="0.75" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding TemperatureC, StringFormat='{0}°C'}"
+                                   FontSize="22"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>
