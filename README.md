@@ -57,9 +57,9 @@ injects are invisible to the app, so telemetry silently never arrives. That one 
 
 **Starting the Android resource fails with NETSDK1085.** `Aspire.Hosting.Maui` launches
 Android with `-p:NoBuild=true`, but Android's `Run` target depends on `Install`, which invokes
-`Build`. `scripts/run-android.ps1` runs the same command without that flag. Details in the
-template README. Last confirmed against 13.5.3-preview.1; the bump to 13.5.4-preview.1 has not
-been re-tested, so try Start once before assuming the workaround is still needed.
+`Build`. `scripts/run-android.ps1` runs the same command without that flag. Still present in
+13.5.4-preview.1. Details, and a one-command way to re-check it after a version bump, in the
+template README.
 
 ## Building the template pack
 

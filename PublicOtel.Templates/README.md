@@ -34,10 +34,9 @@ Then in the dashboard, start the platform you want.
 the trace appears under Traces.
 
 **Android**: on the `mobile-android-emulator` resource, use its **▶ Run on Android**
-command — *not* Start. Start fails with NETSDK1085 because of a bug in `Aspire.Hosting.Maui`
+command — *not* Start. Start always fails with NETSDK1085 because of a bug in
+`Aspire.Hosting.Maui`, still present in 13.5.4-preview.1, the version this template ships
 (see below). The command does the whole thing in one step and is the only action you need.
-Last confirmed against 13.5.3-preview.1; this template now ships 13.5.4-preview.1 and the bug
-has not been re-tested against it, so try Start once before reaching for the workaround.
 
 Equivalently, from a terminal at the repo root:
 
@@ -92,6 +91,19 @@ workaround simply runs the same command without that one flag. A physical device
 (`AddAndroidDevice`) fails identically — the error is in the MSBuild target chain, before
 adb target selection matters. Remove `scripts/run-android.ps1` and the `WithCommand` block
 in `AppHost.cs` once the integration is fixed upstream.
+
+Because the failure is in the MSBuild target chain, you can re-check it after any
+`Aspire.Hosting.Maui` bump without an emulator — this is the exact command the integration
+issues, and it fails in seconds:
+
+```bash
+dotnet build <Name>.Mobile/<Name>.Mobile.csproj -f net10.0-android --no-restore -t:Run -p:NoBuild=true
+```
+
+`error NETSDK1085` means the bug is still there. The guard is
+`_CheckForBuildWithNoBuild` in `Microsoft.NET.Sdk.targets`, which errors whenever `NoBuild`
+is set; dropping `-p:NoBuild=true` from that same command passes it, which is all
+`run-android.ps1` does. Verified still failing on 13.5.4-preview.1.
 
 ## Install
 
