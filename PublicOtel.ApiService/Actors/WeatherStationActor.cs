@@ -48,10 +48,13 @@ public sealed class WeatherStationActor : ReceiveActor
 
     private async Task HandleReportAsync(ReportReading message)
     {
-        // parentContext is the entire fix. Delete that one argument and this span becomes a
-        // root: same trace id, no parent, floating next to the API span in the dashboard
-        // instead of underneath it. That is the broken waterfall from the Monday lecture, and
-        // reproducing it really is this cheap.
+        // parentContext is the entire fix, and the failure without it is worse than it looks.
+        // Delete that one argument and StartActivity falls back to Activity.Current, which is
+        // null here: the mailbox already broke the ambient flow, because the actor runs on a
+        // dispatcher thread long after Tell returned. So this span does not merely lose its
+        // parent - it starts a whole new trace with its own trace id, and the actor's work
+        // vanishes from the request's waterfall instead of sitting beside it. Measured, not
+        // assumed: removing the argument moved this span to an unrelated trace id.
         using var activity = ApiTelemetry.Source.StartActivity(
             "WeatherStationActor.ReportReading",
             ActivityKind.Consumer,
