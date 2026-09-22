@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageId>PublicOtel.Templates</PackageId>
-    <Version>1.9.0</Version>
+    <Version>1.9.1</Version>
     <Title>Aspire + .NET MAUI + OpenTelemetry templates</Title>
     <Authors>PublicOtel</Authors>
     <Description>Template pack for an Aspire solution with an API service, a Blazor web frontend, a .NET MAUI client wired for OpenTelemetry, shared service defaults, and an integration test project.</Description>

@@ -9,7 +9,10 @@ public class WeatherSteps
 	private readonly IWeatherApiClient _api = Substitute.For<IWeatherApiClient>();
 	private WeatherViewModel? _viewModel;
 
-	private WeatherViewModel ViewModel => _viewModel ??= new WeatherViewModel(_api, new Telemetry());
+	// Fully qualified on purpose. A bare `Telemetry` fails with CS0118 in any app whose name
+	// ends in ".Telemetry" - C# resolves the name to the enclosing namespace instead of this
+	// class. Same reason the actor tests spell out Akka.TestKit.Xunit.TestKit.
+	private WeatherViewModel ViewModel => _viewModel ??= new WeatherViewModel(_api, new PublicOtel.ClientLogic.Telemetry());
 
 	[Given("the API returns {int} forecasts")]
 	public void GivenTheApiReturnsForecasts(int count)

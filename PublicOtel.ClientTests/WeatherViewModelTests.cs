@@ -18,7 +18,10 @@ public class WeatherViewModelTests
 		api.GetWeatherAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
 		   .Returns([Forecast(12, "Chilly"), Forecast(24, "Balmy")]);
 
-		var viewModel = new WeatherViewModel(api, new Telemetry());
+		// Fully qualified on purpose. A bare `Telemetry` fails with CS0118 in any app whose name
+		// ends in ".Telemetry" - C# resolves the name to the enclosing namespace instead of this
+		// class. Same reason the actor tests spell out Akka.TestKit.Xunit.TestKit.
+		var viewModel = new WeatherViewModel(api, new PublicOtel.ClientLogic.Telemetry());
 
 		await viewModel.LoadWeatherCommand.ExecuteAsync(null);
 
@@ -35,7 +38,7 @@ public class WeatherViewModelTests
 		api.GetWeatherAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
 		   .Returns([Forecast(), Forecast()], [Forecast()]);
 
-		var viewModel = new WeatherViewModel(api, new Telemetry());
+		var viewModel = new WeatherViewModel(api, new PublicOtel.ClientLogic.Telemetry());
 
 		await viewModel.LoadWeatherCommand.ExecuteAsync(null);
 		await viewModel.LoadWeatherCommand.ExecuteAsync(null);
@@ -50,7 +53,7 @@ public class WeatherViewModelTests
 		api.GetWeatherAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
 		   .Returns<WeatherForecast[]>(_ => throw new HttpRequestException("apiservice unreachable"));
 
-		var viewModel = new WeatherViewModel(api, new Telemetry());
+		var viewModel = new WeatherViewModel(api, new PublicOtel.ClientLogic.Telemetry());
 
 		await viewModel.LoadWeatherCommand.ExecuteAsync(null);
 
