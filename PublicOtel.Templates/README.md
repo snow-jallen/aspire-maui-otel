@@ -37,6 +37,8 @@ the trace appears under Traces.
 command — *not* Start. Start always fails with NETSDK1085 because of a bug in
 `Aspire.Hosting.Maui`, still present in 13.5.4-preview.1, the version this template ships
 (see below). The command does the whole thing in one step and is the only action you need.
+If someone presses Start anyway, the resource's console log says so twice: once as Start
+begins, and again directly under the NETSDK1085 error, pointing at the command.
 
 Equivalently, from a terminal at the repo root:
 
@@ -109,7 +111,7 @@ is set; dropping `-p:NoBuild=true` from that same command passes it, which is al
 
 ```bash
 dotnet pack PublicOtel.Templates/PublicOtel.Templates.csproj -c Release
-dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.10.0.nupkg
+dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.11.0.nupkg
 ```
 
 Once installed the template appears in `dotnet new list` and in the Visual Studio 2022
@@ -153,8 +155,18 @@ So every message record carries an `ActivityContext`, and the actor starts its s
 span becomes a parentless root floating beside the API span — the standard demonstration of
 why this matters, and it takes five seconds to stage.
 
+**Logs that belong to the trace.** The actor logs through an injected `ILogger`, not Akka's
+own `ILoggingAdapter`. The difference matters: `ILogger` writes synchronously, on the actor's
+thread, while the actor span is `Activity.Current`, so each record carries that span's trace
+id and appears inside the request's trace in the dashboard. Akka's adapter hands the message
+to a logging actor that writes it later, on another thread, with no current `Activity`. Akka's
+own output — supervision restarts, dead letters — is still routed into the dashboard's
+structured logs by `ConfigureLoggers(... AddLoggerFactory())` in `WeatherActorExtensions`, but
+those records belong to no trace. Report an out-of-range reading and you can see both: the
+actor's warning inside the trace, and Akka's restart error beside it with no trace id.
+
 **SignalR.** `WeatherHub` at `/hubs/weather` broadcasts on every state change; the MAUI app's
-**Stations** page subscribes and updates live. Alongside the station and temperature fields,
+**Stations** tab subscribes and updates live. Alongside the station and temperature fields,
 the **Connect** and **Report Reading** buttons, and the list of pushed updates, the page shows
 a live `Latest: <station> <temp>°C` label bound to the most recent reading. Reports go over
 HTTP rather than a hub method, deliberately: an HTTP POST carries `traceparent` and starts
@@ -167,7 +179,7 @@ inside a trace, a hub invocation does not.
 
 ### The two-device demo
 
-Start the app, open the **Stations** page on two devices (two emulators, or Windows plus an
+Start the app, open the **Stations** tab on two devices (two emulators, or Windows plus an
 emulator), press **Connect** on both, then **Report Reading** on one. The other updates with
 no refresh.
 
