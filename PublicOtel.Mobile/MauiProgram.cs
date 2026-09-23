@@ -24,11 +24,15 @@ public static class MauiProgram
 
 		// Register the app's own ActivitySource and Meter with OpenTelemetry. Without these two
 		// lines the spans and instruments from Telemetry.cs are created but never exported.
+		//
+		// Fully qualified on purpose. A bare `Telemetry` fails with CS0118 in any app whose name
+		// ends in ".Telemetry" - C# resolves the name to the enclosing namespace instead of the
+		// ClientLogic class.
 		builder.Services.AddOpenTelemetry()
-			.WithTracing(tracing => tracing.AddSource(Telemetry.ActivitySourceName))
-			.WithMetrics(metrics => metrics.AddMeter(Telemetry.MeterName));
+			.WithTracing(tracing => tracing.AddSource(PublicOtel.ClientLogic.Telemetry.ActivitySourceName))
+			.WithMetrics(metrics => metrics.AddMeter(PublicOtel.ClientLogic.Telemetry.MeterName));
 
-		builder.Services.AddSingleton<Telemetry>();
+		builder.Services.AddSingleton<PublicOtel.ClientLogic.Telemetry>();
 
 		builder.Services.AddHttpClient<IWeatherApiClient, WeatherApiClient>(client =>
 		{
