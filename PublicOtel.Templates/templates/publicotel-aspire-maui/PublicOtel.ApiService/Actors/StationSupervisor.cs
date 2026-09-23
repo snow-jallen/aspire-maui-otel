@@ -1,5 +1,6 @@
 using Akka.Actor;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using PublicOtel.ApiService.Hubs;
 
 namespace PublicOtel.ApiService.Actors;
@@ -11,10 +12,12 @@ namespace PublicOtel.ApiService.Actors;
 public sealed class StationSupervisor : ReceiveActor
 {
     private readonly IHubContext<WeatherHub, IWeatherClient> _hub;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public StationSupervisor(IHubContext<WeatherHub, IWeatherClient> hub)
+    public StationSupervisor(IHubContext<WeatherHub, IWeatherClient> hub, ILoggerFactory loggerFactory)
     {
         _hub = hub;
+        _loggerFactory = loggerFactory;
 
         // Forward, not Tell: Forward preserves the original Sender, so an Ask that arrives
         // here gets its reply straight from the child. Tell would make the supervisor the
@@ -23,8 +26,8 @@ public sealed class StationSupervisor : ReceiveActor
         Receive<GetLatestReading>(message => ChildFor(message.Station).Forward(message));
     }
 
-    public static Props CreateProps(IHubContext<WeatherHub, IWeatherClient> hub) =>
-        Props.Create(() => new StationSupervisor(hub));
+    public static Props CreateProps(IHubContext<WeatherHub, IWeatherClient> hub, ILoggerFactory loggerFactory) =>
+        Props.Create(() => new StationSupervisor(hub, loggerFactory));
 
     /// <summary>
     /// What this actor does when one of its children throws.
@@ -61,7 +64,9 @@ public sealed class StationSupervisor : ReceiveActor
         var child = Context.Child(name);
 
         return child.Equals(ActorRefs.Nobody)
-            ? Context.ActorOf(WeatherStationActor.CreateProps(station, _hub), name)
+            ? Context.ActorOf(
+                WeatherStationActor.CreateProps(station, _hub, _loggerFactory.CreateLogger<WeatherStationActor>()),
+                name)
             : child;
     }
 }

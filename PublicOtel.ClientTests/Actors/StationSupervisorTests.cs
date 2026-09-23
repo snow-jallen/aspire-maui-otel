@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.TestKit.Xunit;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using PublicOtel.ApiService.Actors;
 using PublicOtel.ApiService.Hubs;
 
@@ -26,7 +27,7 @@ public class StationSupervisorTests : Akka.TestKit.Xunit.TestKit
 		_hub.Clients.Returns(clients);
 	}
 
-	private IActorRef Supervisor() => Sys.ActorOf(StationSupervisor.CreateProps(_hub));
+	private IActorRef Supervisor() => Sys.ActorOf(StationSupervisor.CreateProps(_hub, NullLoggerFactory.Instance));
 
 	[Fact]
 	public void Each_station_gets_its_own_actor_with_its_own_state()

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Akka.Actor;
 using Akka.TestKit.Xunit;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using PublicOtel.ApiService.Actors;
 using PublicOtel.ApiService.Hubs;
 using PublicOtel.ApiService.Telemetry;
@@ -24,6 +25,8 @@ public class WeatherStationActorTests : Akka.TestKit.Xunit.TestKit
 
 	private readonly IWeatherClient _allClients = Substitute.For<IWeatherClient>();
 
+	private readonly CapturingLogger<WeatherStationActor> _logger = new();
+
 	public WeatherStationActorTests()
 	{
 		var clients = Substitute.For<IHubClients<IWeatherClient>>();
@@ -32,7 +35,7 @@ public class WeatherStationActorTests : Akka.TestKit.Xunit.TestKit
 	}
 
 	private IActorRef StationActor(string station = "north") =>
-		Sys.ActorOf(WeatherStationActor.CreateProps(station, _hub));
+		Sys.ActorOf(WeatherStationActor.CreateProps(station, _hub, _logger));
 
 	[Fact]
 	public void Ask_before_any_report_answers_NoReadingYet()
@@ -126,5 +129,92 @@ public class WeatherStationActorTests : Akka.TestKit.Xunit.TestKit
 		                                 && a.TraceId == callerContext.TraceId);
 		actorSpan.ParentSpanId.ShouldBe(callerContext.SpanId);
 		actorSpan.TraceId.ShouldBe(callerContext.TraceId);
+	}
+
+	[Fact]
+	public void A_log_written_while_handling_a_report_belongs_to_the_actor_span()
+	{
+		using var listener = ListenToApiSpans();
+		var callerContext = CallerContext();
+
+		var actor = StationActor();
+		actor.Tell(new ReportReading("north", 21, callerContext));
+		actor.Tell(new GetLatestReading("north", callerContext));
+		ExpectMsg<StationReading>();
+
+		// The logger records Activity.Current at the moment of the call, which is exactly
+		// what the OpenTelemetry logging provider stamps onto the exported log record. If
+		// it is the actor span, the dashboard shows this log inside the request's trace.
+		var entry = _logger.Entries.Single(e => e.Message.Contains("north"));
+		entry.Level.ShouldBe(LogLevel.Information);
+		entry.Activity.ShouldNotBeNull();
+		entry.Activity.OperationName.ShouldBe("WeatherStationActor.ReportReading");
+		entry.Activity.TraceId.ShouldBe(callerContext.TraceId);
+	}
+
+	[Fact]
+	public void An_out_of_range_reading_is_logged_inside_the_trace_before_the_actor_fails()
+	{
+		using var listener = ListenToApiSpans();
+		var callerContext = CallerContext();
+
+		var actor = StationActor();
+		EventFilter.Exception<InvalidReadingException>().ExpectOne(() =>
+		{
+			actor.Tell(new ReportReading("north", 5000, callerContext));
+		});
+
+		// Akka logs the exception too, but from its logging actor, long after the span has
+		// ended - so that copy is not attached to any trace. This one is.
+		var entry = _logger.Entries.Single(e => e.Level == LogLevel.Warning);
+		entry.Activity.ShouldNotBeNull();
+		entry.Activity.TraceId.ShouldBe(callerContext.TraceId);
+	}
+
+	private static ActivityListener ListenToApiSpans()
+	{
+		var listener = new ActivityListener
+		{
+			ShouldListenTo = source => source.Name == ApiTelemetry.ActivitySourceName,
+			Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+		};
+		ActivitySource.AddActivityListener(listener);
+		return listener;
+	}
+
+	private static ActivityContext CallerContext()
+	{
+		using var caller = ApiTelemetry.Source.StartActivity("caller");
+		return TraceEnvelope.Current();
+	}
+}
+
+/// <summary>
+/// Records each log call together with the <see cref="Activity"/> that was current when it
+/// was made.
+/// </summary>
+internal sealed class CapturingLogger<T> : ILogger<T>
+{
+	public sealed record Entry(LogLevel Level, string Message, Activity? Activity);
+
+	private readonly List<Entry> _entries = [];
+
+	// Written from the actor's dispatcher thread, read from the test thread.
+	public IReadOnlyList<Entry> Entries
+	{
+		get { lock (_entries) { return [.. _entries]; } }
+	}
+
+	public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+	public bool IsEnabled(LogLevel logLevel) => true;
+
+	public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+		Func<TState, Exception?, string> formatter)
+	{
+		lock (_entries)
+		{
+			_entries.Add(new Entry(logLevel, formatter(state, exception), Activity.Current));
+		}
 	}
 }
