@@ -61,7 +61,8 @@
             "PublicOtel.ClientTests/Features/Stations.feature",
             "PublicOtel.ClientTests/Steps/StationSteps.cs",
             "PublicOtel.Mobile/StationsPage.xaml",
-            "PublicOtel.Mobile/StationsPage.xaml.cs"
+            "PublicOtel.Mobile/StationsPage.xaml.cs",
+            "PublicOtel.Web/Components/Pages/Stations.razor"
           ]
         }
       ]

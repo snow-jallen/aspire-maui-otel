@@ -10,6 +10,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PublicOtel.ServiceDefaults\PublicOtel.ServiceDefaults.csproj" />
+    <!--#if (IncludeAkka) -->
+    <!-- The Stations page reuses the MAUI app's view model and clients unchanged. ClientLogic
+         is plain net10.0 with no MAUI types, which is exactly what makes this possible. -->
+    <ProjectReference Include="..\PublicOtel.ClientLogic\PublicOtel.ClientLogic.csproj" />
+    <!--#endif -->
   </ItemGroup>
 
 </Project>

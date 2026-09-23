@@ -74,14 +74,14 @@ jobs:
           if grep -rn "PublicOtel\|APPIDNAME\|TUNNELSUFFIX\|ACTORSYSTEMNAME\|GeneratedClassNamePrefix\|IncludeAkka\|#endif" \
                Ci.Telemetry Akka.CiSmoke \
                --include=*.cs --include=*.csproj --include=*.xaml --include=*.sln \
-               --include=*.json --include=*.ps1 --include=*.feature; then
+               --include=*.json --include=*.ps1 --include=*.feature --include=*.razor; then
             echo "::error::Unsubstituted template tokens found in a generated app"
             exit 1
           fi
 
           echo "--- the akka content must be absent without the flag ---"
           if find Ci.Telemetry -name 'StationsPage.xaml' -o -name 'Stations.feature' \
-                           -o -name 'WeatherStationActor.cs' | grep .; then
+                           -o -name 'WeatherStationActor.cs' -o -name 'Stations.razor' | grep .; then
             echo "::error::Akka content leaked into the app generated without --include-akka"
             exit 1
           fi
@@ -89,6 +89,7 @@ jobs:
           echo "--- and present with it ---"
           test -f Akka.CiSmoke/Akka.CiSmoke.ApiService/Actors/WeatherStationActor.cs
           test -f Akka.CiSmoke/Akka.CiSmoke.Mobile/StationsPage.xaml
+          test -f Akka.CiSmoke/Akka.CiSmoke.Web/Components/Pages/Stations.razor
 
           echo "--- the generated cross-platform projects must build and pass, both ways ---"
           dotnet test Ci.Telemetry/Ci.Telemetry.ClientTests/Ci.Telemetry.ClientTests.csproj --configuration Release
@@ -97,6 +98,10 @@ jobs:
           echo "--- the actor and hub code must compile on its own ---"
           dotnet build Akka.CiSmoke/Akka.CiSmoke.ApiService/Akka.CiSmoke.ApiService.csproj \
             --configuration Release
+
+          echo "--- the web frontend must compile both ways (the Stations page is conditional) ---"
+          dotnet build Ci.Telemetry/Ci.Telemetry.Web/Ci.Telemetry.Web.csproj --configuration Release
+          dotnet build Akka.CiSmoke/Akka.CiSmoke.Web/Akka.CiSmoke.Web.csproj --configuration Release
 
       - uses: actions/upload-artifact@v4
         with:
