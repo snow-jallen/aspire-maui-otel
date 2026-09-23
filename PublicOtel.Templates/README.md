@@ -109,7 +109,7 @@ is set; dropping `-p:NoBuild=true` from that same command passes it, which is al
 
 ```bash
 dotnet pack PublicOtel.Templates/PublicOtel.Templates.csproj -c Release
-dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.9.1.nupkg
+dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.9.2.nupkg
 ```
 
 Once installed the template appears in `dotnet new list` and in the Visual Studio 2022
