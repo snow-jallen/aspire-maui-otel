@@ -8,14 +8,18 @@
 
     <!-- Content is assigned from the DI container in AppShell.xaml.cs so MainPage can take
          constructor dependencies (the API client, telemetry, and a logger). -->
-    <ShellContent
-        x:Name="HomeContent"
-        Title="Weather"
-        Route="MainPage" />
+    <!-- A TabBar rather than bare ShellContent: bare items become flyout entries hidden
+         behind the hamburger button, which on Windows is easy to miss entirely. -->
+    <TabBar>
+        <ShellContent
+            x:Name="HomeContent"
+            Title="Weather"
+            Route="MainPage" />
 
-    <ShellContent
-        x:Name="StationsContent"
-        Title="Stations"
-        Route="StationsPage" />
+        <ShellContent
+            x:Name="StationsContent"
+            Title="Stations"
+            Route="StationsPage" />
+    </TabBar>
 
 </Shell>
