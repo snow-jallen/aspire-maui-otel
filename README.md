@@ -43,8 +43,8 @@ for the dev tunnel caveats.
 
 `dotnet new publicotel-maui -n Your.App --include-akka` adds an Akka.NET actor system behind
 the API, a message envelope that carries `ActivityContext` so a trace survives the actor
-mailbox, and a SignalR hub that pushes state changes to a live **Stations** page in the MAUI
-app. See [the template README](PublicOtel.Templates/README.md) for what it generates and how
+mailbox, and a SignalR hub that pushes state changes to a live **Stations** page in both the MAUI
+app and the web frontend. See [the template README](PublicOtel.Templates/README.md) for what it generates and how
 to run the two-device demo.
 
 ## Two things worth knowing

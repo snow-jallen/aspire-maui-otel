@@ -111,7 +111,7 @@ is set; dropping `-p:NoBuild=true` from that same command passes it, which is al
 
 ```bash
 dotnet pack PublicOtel.Templates/PublicOtel.Templates.csproj -c Release
-dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.11.0.nupkg
+dotnet new install PublicOtel.Templates/bin/Release/PublicOtel.Templates.1.12.0.nupkg
 ```
 
 Once installed the template appears in `dotnet new list` and in the Visual Studio 2022
@@ -127,7 +127,7 @@ dotnet new publicotel-maui -n Contoso.Telemetry --application-id-prefix com.cont
 |---|---|---|
 | `-n, --name` | `AspireMauiApp` | Renames every project, namespace, and the solution. Also drives the lower-cased MAUI `ApplicationId`, the OpenTelemetry meter and instrument names, and the dashboard's `*.dev.localhost` host. |
 | `--application-id-prefix` | `com.companyname` | Reverse-DNS prefix for the MAUI `ApplicationId`. |
-| `--include-akka` | `false` | Adds an Akka.NET actor system to the API, a message envelope that carries `ActivityContext` across the actor mailbox, and a SignalR hub pushing live updates to a second page in the MAUI app. |
+| `--include-akka` | `false` | Adds an Akka.NET actor system to the API, a message envelope that carries `ActivityContext` across the actor mailbox, and a SignalR hub pushing live updates to a **Stations** tab in the MAUI app and a **Stations** page in the web frontend. |
 
 Project GUIDs, the solution GUID, the AppHost `UserSecretsId`, and all ten launch-profile
 ports are regenerated per instantiation, so two apps from this template can be open and
@@ -139,7 +139,7 @@ running side by side.
 dotnet new publicotel-maui -n Contoso.Telemetry --include-akka
 ```
 
-Adds three things that go together.
+Adds four things that go together.
 
 **An actor per weather station.** `StationSupervisor` creates one `WeatherStationActor` per
 station id and supervises it. Each actor owns its station's latest reading in a private field
@@ -177,11 +177,20 @@ inside a trace, a hub invocation does not.
 | `POST /stations/{station}/readings` | `Tell` | `202 Accepted` — the actor may not have processed it yet |
 | `GET /stations/{station}` | `Ask` (3s timeout) | `200` with the reading, or `404` |
 
+**A Stations page in the web frontend.** `/stations` in `<Name>.Web` does what the MAUI tab
+does, with the same code: it references `<Name>.ClientLogic` and uses `StationsViewModel`,
+`StationApiClient` and `StationHubClient` unchanged, which is the payoff for keeping that
+project free of MAUI types. They are registered as scoped services, so each browser tab gets its
+own view model and its own SignalR connection. One click is one trace: the Blazor `onclick`
+span, the web frontend's `POST`, the API's `POST /stations/{station}/readings`, and the actor's
+span, with the actor's log attached.
+
 ### The two-device demo
 
-Start the app, open the **Stations** tab on two devices (two emulators, or Windows plus an
-emulator), press **Connect** on both, then **Report Reading** on one. The other updates with
-no refresh.
+Start the app, open **Stations** in two places — two browser tabs on the web frontend is the
+quickest, or Windows plus an emulator — press **Connect** in both, then **Report Reading** in
+one. The other updates with no refresh. Mixing them works too: a reading reported from the
+browser appears on the phone.
 
 Android reaches the API over the existing `mobile-api` dev tunnel, and SignalR therefore rides
 that tunnel too. Dev tunnels do carry WebSockets, but it is a new failure surface: if live
@@ -218,18 +227,19 @@ code:
   `contoso.telemetry` and the generated ApiService would throw `ArgumentException: Invalid
   ActorSystem name` before it finished starting. This is the one file the branch added whose
   two copies are not byte-identical.
-- The `//#if (IncludeAkka)` and `<!--#if (IncludeAkka) -->` markers — 14 marker pairs across
-  seven files: `Program.cs`, `MauiProgram.cs`, `AppShell.xaml`, `AppShell.xaml.cs`, and the
-  `PublicOtel.ApiService`, `PublicOtel.ClientLogic`, and `PublicOtel.ClientTests` `.csproj`
-  files. The working copy has that code unconditionally; only the template copy carries
+- The `//#if (IncludeAkka)`, `<!--#if (IncludeAkka) -->` and `@*#if (IncludeAkka)*@` markers —
+  18 marker pairs across ten files: the API's and the web frontend's `Program.cs`,
+  `MauiProgram.cs`, `AppShell.xaml`, `AppShell.xaml.cs`, `NavMenu.razor`, and the
+  `PublicOtel.ApiService`, `PublicOtel.ClientLogic`, `PublicOtel.ClientTests` and
+  `PublicOtel.Web` `.csproj` files. The working copy has that code unconditionally; only the template copy carries
   markers. Whole files need no markers — the `(!IncludeAkka)` modifier in `template.json`
-  excludes all ten paths by name when the flag is off: the directories
+  excludes all eleven paths by name when the flag is off: the directories
   `PublicOtel.ApiService/Actors/`, `PublicOtel.ApiService/Hubs/`,
   `PublicOtel.ApiService/Telemetry/`, `PublicOtel.ClientLogic/Realtime/`,
-  `PublicOtel.ClientTests/Actors/` and `PublicOtel.ClientTests/Realtime/`, and the four
+  `PublicOtel.ClientTests/Actors/` and `PublicOtel.ClientTests/Realtime/`, and the five
   individual files `PublicOtel.ClientTests/Features/Stations.feature`,
-  `PublicOtel.ClientTests/Steps/StationSteps.cs`, `PublicOtel.Mobile/StationsPage.xaml` and
-  `PublicOtel.Mobile/StationsPage.xaml.cs`. Add a new unconditional Akka-only file and it
+  `PublicOtel.ClientTests/Steps/StationSteps.cs`, `PublicOtel.Mobile/StationsPage.xaml`,
+  `PublicOtel.Mobile/StationsPage.xaml.cs` and `PublicOtel.Web/Components/Pages/Stations.razor`. Add a new unconditional Akka-only file and it
   needs a new entry there. One asymmetry worth preserving in
   `PublicOtel.ClientTests.csproj`: the `xunit.v3` 3.2.2 pin is unconditional
   (both variants need it, per the comment beside the `PackageReference`), while only
