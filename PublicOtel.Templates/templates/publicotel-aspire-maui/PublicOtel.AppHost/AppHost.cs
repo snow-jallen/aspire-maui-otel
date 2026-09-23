@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -39,11 +41,34 @@ var androidEmulator = mobile.AddAndroidEmulator()
     .WithReference(apiService, mobileApiTunnel);
 
 // Starting this resource normally fails with NETSDK1085, because Aspire.Hosting.Maui
-// 13.5.3-preview.1 launches Android with -p:NoBuild=true and Android's Run target depends
+// 13.5.4-preview.1 launches Android with -p:NoBuild=true and Android's Run target depends
 // on Install, which invokes Build. Starting it is still useful: it performs the pre-build
 // and writes the environment targets file carrying the OTLP and service discovery values.
 // This command then launches the app with the identical command minus that one flag.
 // See scripts/run-android.ps1. Remove both once the integration is fixed upstream.
+//
+// The command's description only shows up once you open the resource's menu, and Start is the
+// obvious button, so the same advice is also written into the resource's console log: once
+// as Start begins, and again after it fails, directly under the NETSDK1085 error.
+const string useRunOnAndroid =
+    "Start always fails on Android with NETSDK1085 - an Aspire.Hosting.Maui bug, not a "
+    + "problem with your app. Use the \"▶ Run on Android\" command from this resource's "
+    + "menu (the ... button) instead, or run .\\scripts\\run-android.ps1.";
+
+builder.Eventing.Subscribe<BeforeResourceStartedEvent>(androidEmulator.Resource, (e, _) =>
+{
+    e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(e.Resource)
+        .LogWarning("{Advice}", useRunOnAndroid);
+    return Task.CompletedTask;
+});
+
+builder.Eventing.Subscribe<ResourceStoppedEvent>(androidEmulator.Resource, (e, _) =>
+{
+    e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(e.Resource)
+        .LogWarning("{Advice}", useRunOnAndroid);
+    return Task.CompletedTask;
+});
+
 var runAndroidScript = Path.GetFullPath(
     Path.Combine(builder.AppHostDirectory, "..", "scripts", "run-android.ps1"));
 
